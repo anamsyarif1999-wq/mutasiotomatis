@@ -74,3 +74,16 @@ SUB_BIDANG_VALID_OPTIONS = {
     "NOC RITEL PUSAT",
     "NOC RITEL SBU",
 }
+
+# =====================================================
+# ALIAS PENULISAN SUB BIDANG
+# =====================================================
+# Beberapa nilai di Excel ditulis dengan nama singkat/beda tapi
+# sebenarnya merujuk ke unit yang SAMA dengan salah satu opsi valid
+# di atas. "NOC SBU" == "NOC RITEL SBU" (dikonfirmasi ulang oleh Anda,
+# sebelumnya sempat dianggap beda unit -- sekarang dikoreksi).
+# Tambahkan alias baru di sini kalau ada penulisan lain yang serupa.
+
+SUB_BIDANG_ALIAS = {
+    "NOC SBU": "NOC RITEL SBU",
+}
