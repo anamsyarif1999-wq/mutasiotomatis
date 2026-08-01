@@ -6,7 +6,7 @@
 
 FORM_URL = (
     "https://docs.google.com/forms/d/e/"
-    "1FAIpQLSeMekvFOyaT4esbVBv2X4v7H82STVghbbX9VbErUINGp2P6bQ"
+    "1FAIpQLSeMekvFOyaT4esbVBv2X4v7H82STVghbbX9VbErUlNGp2P6bQ"
     "/formResponse"
 )
 
