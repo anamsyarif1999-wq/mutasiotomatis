@@ -40,26 +40,37 @@ ENTRY = {
 # =====================================================
 # MAPPING LABEL DROPDOWN "Sub Kategori Awal" / "Sub Kategori Akhir"
 # =====================================================
-# PENTING - MOHON DIVERIFIKASI:
-# Google Form pakai LABEL dropdown yang beda format dari data mentah di Excel.
-# Baru 2 nilai yang saya konfirmasi LANGSUNG dari payload hasil capture Anda:
-#   - "INTERNET DOWN/NO INTERNET"  -> "Gangguan Internet Down"   (CONFIRMED, dari Sub Kategori Awal)
-#   - "LINK LOSS"                  -> "Gangguan Link Loss"       (CONFIRMED, dari Sub Kategori Akhir)
-#
-# 2 nilai lain BELUM ada contoh capture-nya, jadi saya TEBAK dengan pola yang sama
-# (silakan koreksi kalau beda dengan pilihan asli di Google Form):
-#   - "ONT PROBLEM"                -> "Gangguan ONT Problem"     (BELUM DIKONFIRMASI)
-#   - "INTERNET SLOW"              -> "Gangguan Internet Slow"   (BELUM DIKONFIRMASI)
-#
-# Cara mengecek yang paling pasti: buka form -> klik dropdown "Sub Kategori Awal"
-# -> lihat teks pilihan persis apa adanya, lalu perbaiki dictionary di bawah ini.
+# SEMUA SUDAH DIKONFIRMASI langsung dari daftar pilihan asli di form
+# (hasil fetch halaman form, bukan tebakan lagi).
 
 CATEGORY_MAP = {
     "INTERNET DOWN/NO INTERNET": "Gangguan Internet Down",
     "LINK LOSS": "Gangguan Link Loss",
-    "ONT PROBLEM": "Gangguan ONT Problem",       # TODO: verifikasi ke form asli
-    "INTERNET SLOW": "Gangguan Internet Slow",   # TODO: verifikasi ke form asli
+    "ONT PROBLEM": "Gangguan ONT Problem",
+    "INTERNET SLOW": "Gangguan Internet Slow",
 }
 
 # Default kategori kalau kolom "Sub Kategori Awal" kosong (aturan dari Anda)
 DEFAULT_SUB_KATEGORI_AWAL = "INTERNET DOWN/NO INTERNET"
+
+# =====================================================
+# DAFTAR PILIHAN VALID "SUB BIDANG AWAL" / "SUB BIDANG AKHIR"
+# =====================================================
+# Diambil persis dari dropdown form (field ini TIDAK wajib diisi).
+# Kalau nilai di Excel tidak cocok PERSIS dengan salah satu ini
+# (contoh: "NOC SBU" bukan "NOC RITEL SBU" -- sudah dikonfirmasi
+# ke Anda bahwa keduanya BEDA unit), field akan dikosongkan saat
+# submit dan barisnya dilaporkan di UI sebagai "dilewati (SUB BIDANG
+# tidak valid)" supaya tidak hilang diam-diam.
+
+SUB_BIDANG_VALID_OPTIONS = {
+    "BILLING RITEL PUSAT",
+    "HELPDESK PLN MOBILE",
+    "IT ENTERPRISE",
+    "SALES RITEL SBU",
+    "AKTIVASI RITEL SBU",
+    "CM RITEL PUSAT",
+    "SALES RITEL PUSAT",
+    "NOC RITEL PUSAT",
+    "NOC RITEL SBU",
+}
