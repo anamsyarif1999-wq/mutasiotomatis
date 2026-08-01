@@ -15,6 +15,7 @@ from config import (
     CATEGORY_MAP,
     DEFAULT_SUB_KATEGORI_AWAL,
     SUB_BIDANG_VALID_OPTIONS,
+    SUB_BIDANG_ALIAS,
 )
 
 # =====================================================
@@ -110,15 +111,18 @@ def resolve_sub_kategori_awal(row):
 def resolve_sub_bidang(raw_value):
     """
     Kembalikan (nilai_untuk_dikirim, dilewati_bool).
-    Kalau raw_value tidak cocok persis dengan salah satu pilihan valid
-    di dropdown form, field dikosongkan (bukan dipaksakan) dan
-    dilewati_bool=True supaya baris ini bisa dilaporkan ke user.
+    Nilai raw dinormalisasi dulu lewat SUB_BIDANG_ALIAS (mis. "NOC SBU"
+    -> "NOC RITEL SBU") sebelum dicocokkan ke daftar pilihan valid.
+    Kalau setelah dinormalisasi tetap tidak cocok dengan salah satu
+    pilihan valid di dropdown form, field dikosongkan (bukan dipaksakan)
+    dan dilewati_bool=True supaya baris ini bisa dilaporkan ke user.
     """
     raw = clean(raw_value)
     if raw == "":
         return "", False
-    if raw in SUB_BIDANG_VALID_OPTIONS:
-        return raw, False
+    normalized = SUB_BIDANG_ALIAS.get(raw, raw)
+    if normalized in SUB_BIDANG_VALID_OPTIONS:
+        return normalized, False
     return "", True
 
 
@@ -137,7 +141,11 @@ def resolve_create_datetime(row):
         return None
 
     try:
-        date_str = pd.to_datetime(date_raw).strftime("%Y-%m-%d")
+        # dayfirst=True karena format tanggal di Excel Anda adalah
+        # DD/MM/YYYY (contoh: 01/08/2026 = 1 Agustus 2026), bukan
+        # format Amerika MM/DD/YYYY. Tanpa ini, tanggal seperti
+        # "01/08/2026" bisa salah terbaca jadi 8 Januari 2026.
+        date_str = pd.to_datetime(date_raw, dayfirst=True).strftime("%Y-%m-%d")
         time_str = str(time_raw).strip()
         return pd.to_datetime(f"{date_str} {time_str}")
     except Exception:
@@ -185,18 +193,23 @@ def build_payload(row, manual_sbu=None, manual_datetime=None):
     # PICK UP TIME (persis app.py lama - dari chain delay, bukan dari Excel)
     # ---------------------------------
     pickup = get_pickup_time()
-    payload[ENTRY["pickup_hour"]] = pickup.strftime("%H")
-    payload[ENTRY["pickup_minute"]] = pickup.strftime("%M")
-    payload[ENTRY["pickup_second"]] = pickup.strftime("%S")
 
     # ---------------------------------
     # CREATE DATE & TIME
     # ---------------------------------
     create_dt = manual_datetime or resolve_create_datetime(row)
 
-    payload[ENTRY["create_time_hour"]] = create_dt.strftime("%H")
-    payload[ENTRY["create_time_minute"]] = create_dt.strftime("%M")
-    payload[ENTRY["create_time_second"]] = create_dt.strftime("%S")
+    # CATATAN: nilai pickup time & create ticket time sebelumnya tertukar
+    # saat masuk ke Google Form (field "Pick Up Time" kebagian jam Create
+    # Ticket, dan sebaliknya). Ditukar balik di sini supaya masing-masing
+    # entry menerima nilai yang benar.
+    payload[ENTRY["pickup_hour"]] = create_dt.strftime("%H")
+    payload[ENTRY["pickup_minute"]] = create_dt.strftime("%M")
+    payload[ENTRY["pickup_second"]] = create_dt.strftime("%S")
+
+    payload[ENTRY["create_time_hour"]] = pickup.strftime("%H")
+    payload[ENTRY["create_time_minute"]] = pickup.strftime("%M")
+    payload[ENTRY["create_time_second"]] = pickup.strftime("%S")
 
     payload[ENTRY["create_date_year"]] = create_dt.strftime("%Y")
     payload[ENTRY["create_date_month"]] = create_dt.strftime("%m")
@@ -230,10 +243,10 @@ def build_payload(row, manual_sbu=None, manual_datetime=None):
 
     payload[ENTRY["keterangan_tambahan"]] = clean(row.get("Keterangan Tambahan", ""))
 
-    # Nama CSO Perbantuan selalu kosong di data -> field hidden dikirim "0"
-    # (sama seperti contoh capture Anda, karena field ini memang tidak dipakai
-    # untuk alur "Ticket Mutation From CSO")
-    payload[ENTRY["nama_cso_perbantuan"]] = "0"
+    # Nama CSO Perbantuan selalu kosong di data -> dikirim string kosong
+    # (bukan "0", karena "0" ikut tampil di hasil form padahal field ini
+    # memang tidak dipakai untuk alur "Ticket Mutation From CSO")
+    payload[ENTRY["nama_cso_perbantuan"]] = ""
 
     payload["fvv"] = "1"
     payload["pageHistory"] = "0"
