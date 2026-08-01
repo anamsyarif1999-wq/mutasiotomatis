@@ -5,7 +5,7 @@
 # "BACK-OFFICE - Monitoring Division & Mutation National"
 
 FORM_URL = (
-    "https://docs.google.com/forms/u/0/d/e/"
+    "https://docs.google.com/forms/d/e/"
     "1FAIpQLSeMekvFOyaT4esbVBv2X4v7H82STVghbbX9VbErUINGp2P6bQ"
     "/formResponse"
 )
