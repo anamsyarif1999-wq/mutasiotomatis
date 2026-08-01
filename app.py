@@ -16,6 +16,7 @@ from config import (
     DEFAULT_SUB_KATEGORI_AWAL,
     SUB_BIDANG_VALID_OPTIONS,
     SUB_BIDANG_ALIAS,
+    SBU_OPTIONS,
 )
 
 # =====================================================
@@ -332,7 +333,7 @@ if file:
     manual_sbu_map = {}
     manual_datetime_map = {}
 
-    known_sbu = sorted(df["SBU"].dropna().unique().tolist())
+    known_sbu = SBU_OPTIONS
 
     if issues:
         st.warning(
