@@ -39,21 +39,26 @@ REQUIRED_COLS = [
 # PICKUP TIME CHAIN (persis logika app.py lama)
 # =====================================================
 
-if "last_submit_time" not in st.session_state:
-    st.session_state.last_submit_time = None
+# =====================================================
+# PICKUP TIME CHAIN (persis logika app.py lama)
+# =====================================================
+
+last_submit_time = None
 
 
 def get_pickup_time():
+    global last_submit_time
     now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
-    if st.session_state.last_submit_time is None:
+    # Data pertama
+    if last_submit_time is None:
         pickup = now - timedelta(seconds=random.randint(20, 40))
+    # Data berikutnya
     else:
-        pickup = st.session_state.last_submit_time + timedelta(
-            seconds=random.randint(1, 10)
-        )
+        pickup = last_submit_time + timedelta(seconds=random.randint(1, 10))
 
-    st.session_state.last_submit_time = pickup
+    # Simpan pickup terakhir
+    last_submit_time = pickup
     return pickup
 
 
