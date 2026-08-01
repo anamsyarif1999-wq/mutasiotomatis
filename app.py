@@ -9,7 +9,13 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from config import FORM_URL, ENTRY, CATEGORY_MAP, DEFAULT_SUB_KATEGORI_AWAL
+from config import (
+    FORM_URL,
+    ENTRY,
+    CATEGORY_MAP,
+    DEFAULT_SUB_KATEGORI_AWAL,
+    SUB_BIDANG_VALID_OPTIONS,
+)
 
 # =====================================================
 # CONFIG
@@ -99,6 +105,21 @@ def resolve_sub_kategori_awal(row):
     if raw == "":
         raw = DEFAULT_SUB_KATEGORI_AWAL
     return map_category(raw)
+
+
+def resolve_sub_bidang(raw_value):
+    """
+    Kembalikan (nilai_untuk_dikirim, dilewati_bool).
+    Kalau raw_value tidak cocok persis dengan salah satu pilihan valid
+    di dropdown form, field dikosongkan (bukan dipaksakan) dan
+    dilewati_bool=True supaya baris ini bisa dilaporkan ke user.
+    """
+    raw = clean(raw_value)
+    if raw == "":
+        return "", False
+    if raw in SUB_BIDANG_VALID_OPTIONS:
+        return raw, False
+    return "", True
 
 
 def resolve_create_datetime(row):
@@ -195,8 +216,17 @@ def build_payload(row, manual_sbu=None, manual_datetime=None):
     sbu_value = manual_sbu if manual_sbu else clean(row.get("SBU", ""))
     payload[ENTRY["sbu"]] = sbu_value
 
-    payload[ENTRY["sub_bidang_awal"]] = clean(row.get("SUB BIDANG AWAL", ""))
-    payload[ENTRY["sub_bidang_akhir"]] = clean(row.get("SUB BIDANG AKHIR", ""))
+    skipped_fields = []
+
+    sub_bidang_awal_val, skipped_awal = resolve_sub_bidang(row.get("SUB BIDANG AWAL", ""))
+    payload[ENTRY["sub_bidang_awal"]] = sub_bidang_awal_val
+    if skipped_awal:
+        skipped_fields.append(f"SUB BIDANG AWAL ('{clean(row.get('SUB BIDANG AWAL',''))}' tidak valid)")
+
+    sub_bidang_akhir_val, skipped_akhir = resolve_sub_bidang(row.get("SUB BIDANG AKHIR", ""))
+    payload[ENTRY["sub_bidang_akhir"]] = sub_bidang_akhir_val
+    if skipped_akhir:
+        skipped_fields.append(f"SUB BIDANG AKHIR ('{clean(row.get('SUB BIDANG AKHIR',''))}' tidak valid)")
 
     payload[ENTRY["keterangan_tambahan"]] = clean(row.get("Keterangan Tambahan", ""))
 
@@ -208,7 +238,7 @@ def build_payload(row, manual_sbu=None, manual_datetime=None):
     payload["fvv"] = "1"
     payload["pageHistory"] = "0"
 
-    return payload
+    return payload, skipped_fields
 
 
 # =====================================================
@@ -348,7 +378,7 @@ if file:
         for idx in range(start_row, len(df)):
             row = df.iloc[idx]
 
-            payload = build_payload(
+            payload, skipped_fields = build_payload(
                 row,
                 manual_sbu=manual_sbu_map.get(idx),
                 manual_datetime=manual_datetime_map.get(idx),
@@ -356,13 +386,15 @@ if file:
 
             ok, err = submit_form(session, payload)
 
+            note = f" | dilewati: {'; '.join(skipped_fields)}" if skipped_fields else ""
+
             if ok:
                 save_progress(idx + 1)
                 success += 1
-                status_box.success(f"✓ {row['ID Ticket']}")
+                status_box.success(f"✓ {row['ID Ticket']}{note}")
             else:
                 failed += 1
-                status_box.error(f"✗ {row['ID Ticket']} | {err}")
+                status_box.error(f"✗ {row['ID Ticket']} | {err}{note}")
 
             progress_bar.progress((idx + 1) / len(df))
 
