@@ -87,3 +87,23 @@ SUB_BIDANG_VALID_OPTIONS = {
 SUB_BIDANG_ALIAS = {
     "NOC SBU": "NOC RITEL SBU",
 }
+
+# =====================================================
+# DAFTAR PILIHAN VALID "SBU"
+# =====================================================
+# Diambil persis dari dropdown "SBU" di form. Dipakai sebagai daftar
+# pilihan manual di UI saat baris Excel punya SBU kosong, supaya tidak
+# tergantung nilai yang kebetulan ada di file Excel yang sedang diupload.
+
+SBU_OPTIONS = [
+    "JAWA BAGIAN BARAT",
+    "JAWA BAGIAN TENGAH",
+    "JAWA BAGIAN TIMUR",
+    "JAKARTA & BANTEN",
+    "BALI & NUSRA",
+    "SULAWESI & INDONESIA TIMUR",
+    "KALIMANTAN",
+    "SUMATERA BAGIAN SELATAN",
+    "SUMATERA BAGIAN TENGAH",
+    "SUMATERA BAGIAN UTARA",
+]
