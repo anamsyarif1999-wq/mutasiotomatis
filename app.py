@@ -39,29 +39,28 @@ REQUIRED_COLS = [
 ]
 
 # =====================================================
-# PICKUP TIME CHAIN (persis logika app.py lama)
+# PICKUP TIME
 # =====================================================
-
-# =====================================================
-# PICKUP TIME CHAIN (persis logika app.py lama)
-# =====================================================
-
-last_submit_time = None
+# CATATAN PERBAIKAN:
+# Versi lama menyambung pickup dari pickup baris sebelumnya
+# (pickup_baru = pickup_lama + random(1,10) detik), TANPA pernah
+# mengacu ke waktu submit yang sebenarnya (`now`). Karena antar
+# submit ada jeda nyata random(min_delay, max_delay) detik (default
+# 10-30 detik) lewat time.sleep(), sementara pickup cuma nambah
+# 1-10 detik per baris, pickup jadi makin lama makin ketinggalan
+# jauh dari waktu asli. Akibatnya AHT (Create Ticket Time - Pick Up
+# Time) terus membesar tanpa batas seiring banyaknya baris yang
+# diimport, alih-alih konsisten kecil seperti yang diinginkan.
+#
+# Fix: pickup dihitung ulang dari `now` (waktu submit sebenarnya)
+# di SETIAP pemanggilan, independen dari baris sebelumnya. Dengan
+# ini AHT tiap tiket akan konsisten random 9-15 detik, berapa pun
+# banyak baris yang diimport dan berapa pun lama proses importnya.
 
 
 def get_pickup_time():
-    global last_submit_time
     now = datetime.now(ZoneInfo("Asia/Jakarta"))
-
-    # Data pertama
-    if last_submit_time is None:
-        pickup = now - timedelta(seconds=random.randint(9, 15))
-    # Data berikutnya
-    else:
-        pickup = last_submit_time + timedelta(seconds=random.randint(1, 10))
-
-    # Simpan pickup terakhir
-    last_submit_time = pickup
+    pickup = now - timedelta(seconds=random.randint(9, 15))
     return pickup
 
 
