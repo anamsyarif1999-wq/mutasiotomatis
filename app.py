@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import requests
 import random
@@ -363,6 +364,37 @@ def submit_form(session, payload):
 st.set_page_config(page_title="MONIT Importer v2", layout="wide")
 st.title("Excel → Google Form MONIT (Mutation)")
 
+# Jam real-time (WIB) sebagai referensi saat isi Create Ticket date/time
+# manual -- jalan sendiri tiap detik di browser, tidak perlu buka tab lain.
+components.html(
+    """
+    <div id="live-clock-wib"
+         style="font-family:sans-serif;font-size:1.4em;font-weight:600;
+                color:#fafafa;padding:6px 0 12px 0;">
+        Memuat jam...
+    </div>
+    <script>
+    function updateLiveClock() {
+        var now = new Date();
+        var utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+        var wib = new Date(utcMs + 7 * 3600000); // WIB = UTC+7
+        function pad(n) { return String(n).padStart(2, "0"); }
+        var hh = pad(wib.getHours());
+        var mm = pad(wib.getMinutes());
+        var ss = pad(wib.getSeconds());
+        var dd = pad(wib.getDate());
+        var mo = pad(wib.getMonth() + 1);
+        var yy = wib.getFullYear();
+        document.getElementById("live-clock-wib").innerText =
+            "🕒 " + dd + "/" + mo + "/" + yy + "  " + hh + ":" + mm + ":" + ss + " WIB";
+    }
+    setInterval(updateLiveClock, 1000);
+    updateLiveClock();
+    </script>
+    """,
+    height=45,
+)
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -436,14 +468,20 @@ if file:
                         key=f"date_{idx}",
                     )
                 with c3:
-                    chosen_time = st.time_input(
-                        f"Create Ticket time (baris {idx + 1})",
-                        value=now_jakarta.time(),
+                    time_text = st.text_input(
+                        f"Create Ticket time (baris {idx + 1}) - format HH:MM",
+                        value=now_jakarta.strftime("%H:%M"),
                         key=f"time_{idx}",
                     )
-                manual_datetime_map[idx] = pd.to_datetime(
-                    f"{chosen_date} {chosen_time}"
-                )
+                    try:
+                        chosen_time = datetime.strptime(time_text.strip(), "%H:%M").time()
+                    except ValueError:
+                        chosen_time = None
+                        st.error(f"Format jam salah (baris {idx + 1}): pakai HH:MM, contoh 14:05")
+                if chosen_time is not None:
+                    manual_datetime_map[idx] = pd.to_datetime(
+                        f"{chosen_date} {chosen_time}"
+                    )
 
             if any(i.startswith("Sub Kategori Awal tidak dikenal") for i in item["issues"]):
                 chosen = st.selectbox(
