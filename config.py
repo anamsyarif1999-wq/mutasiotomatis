@@ -54,6 +54,51 @@ CATEGORY_MAP = {
 DEFAULT_SUB_KATEGORI_AWAL = "INTERNET DOWN/NO INTERNET"
 
 # =====================================================
+# DAFTAR LENGKAP PILIHAN VALID "Sub Kategori Awal" / "Sub Kategori Akhir"
+# =====================================================
+# Diambil PERSIS dari dropdown form (screenshot Anda). Dipakai untuk
+# memvalidasi/mencocokkan nilai dari Excel -- kalau nilai Excel (setelah
+# dinormalisasi: huruf besar semua, tanda "-" dan spasi berlebih dibuang)
+# cocok dengan salah satu daftar ini, nilai PERSIS dari daftar ini yang
+# dikirim ke form (bukan nilai mentah dari Excel), supaya selalu sama
+# persis dengan opsi dropdown dan tidak ditolak form (HTTP 400).
+
+CATEGORY_VALID_OPTIONS = [
+    "Gangguan Internet Down",
+    "Gangguan Link Loss",
+    "Gangguan Internet Slow",
+    "Gangguan Intermitten",
+    "Gangguan Tidak dapat akses web/situs tertentu.",
+    "Gangguan TV Problem",
+    "Gangguan Cable Problem",
+    "Gangguan ONT Problem",
+    "Gangguan lain lain",
+    "Keluhan Pemasangan",
+    "Keluhan Isolir",
+    "Keluhan Billing",
+    "Keluhan Refund",
+    "Keluhan Upgrade",
+    "Keluhan Downgrade",
+    "Keluhan Cable Problem",
+    "Keluhan Deaktifasi",
+    "Keluhan lain lain",
+    "Keluhan Pendaftaran",
+    "Keluhan ICONCASH",
+    "Keluhan PLN Mobile",
+    "Keluhan Coverage",
+    "Keluhan Permohonan Upgrade",
+    "Keluhan Permohonan Downgrade",
+    "Keluhan Komisi mitra",
+    "Keluhan Permohonan Ubah Data",
+    "Keluhan Ganti Password",
+    "Keluhan Ganti SSID",
+    "Keluhan Permohonan Pendaftaran",
+    "Keluhan MYICON+ Kendala Fitur",
+    "Keluhan Petugas Aktivasi",
+    "Informasi Billing",
+]
+
+# =====================================================
 # DAFTAR PILIHAN VALID "SUB BIDANG AWAL" / "SUB BIDANG AKHIR"
 # =====================================================
 # Diambil persis dari dropdown form (field ini TIDAK wajib diisi).
