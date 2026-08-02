@@ -13,6 +13,7 @@ from config import (
     FORM_URL,
     ENTRY,
     CATEGORY_MAP,
+    CATEGORY_VALID_OPTIONS,
     DEFAULT_SUB_KATEGORI_AWAL,
     SUB_BIDANG_VALID_OPTIONS,
     SUB_BIDANG_ALIAS,
@@ -97,14 +98,50 @@ def clean(value):
     return str(value).strip()
 
 
+def _normalize_for_match(s):
+    """Huruf besar semua, buang tanda '-' dan rapikan spasi, untuk pencocokan
+    yang tidak peduli beda kapitalisasi/tanda hubung antara Excel & form."""
+    s = s.upper().replace("-", " ")
+    return " ".join(s.split())
+
+
+_CATEGORY_VALID_LOOKUP = {
+    _normalize_for_match(opt): opt for opt in CATEGORY_VALID_OPTIONS
+}
+
+
 def map_category(raw_value):
-    """Terjemahkan nilai mentah Excel ke label dropdown Google Form."""
+    """
+    Terjemahkan nilai mentah Excel ke label dropdown Google Form.
+    Kembalikan (nilai_untuk_dikirim, dikenali_bool).
+
+    Urutan pencocokan:
+      1. CATEGORY_MAP -- alias eksplisit untuk penulisan yang beda jauh
+         dari label form (mis. "INTERNET DOWN/NO INTERNET" -> "Gangguan
+         Internet Down").
+      2. Pencocokan longgar ke CATEGORY_VALID_OPTIONS (daftar lengkap
+         opsi dropdown form) -- mengabaikan beda huruf besar/kecil dan
+         tanda "-", supaya "KELUHAN - LAIN LAIN" otomatis cocok dengan
+         "Keluhan lain lain".
+      3. Kalau tetap tidak cocok, dikenali_bool=False -- field ini JANGAN
+         dikirim mentah-mentah, karena field dropdown akan ditolak form
+         dengan HTTP 400 kalau nilainya tidak cocok persis dengan salah
+         satu opsi.
+    """
     raw_value = clean(raw_value)
     if raw_value == "":
-        return ""
-    # Buang prefix "GANGGUAN - " kalau ada (format kolom Sub Kategori Akhir)
+        return "", True
+
+    # Buang prefix "GANGGUAN - " kalau ada (format lama, tetap didukung)
     normalized = raw_value.replace("GANGGUAN - ", "").strip()
-    return CATEGORY_MAP.get(normalized, raw_value)
+    if normalized in CATEGORY_MAP:
+        return CATEGORY_MAP[normalized], True
+
+    match = _CATEGORY_VALID_LOOKUP.get(_normalize_for_match(raw_value))
+    if match:
+        return match, True
+
+    return "", False
 
 
 def resolve_sub_kategori_awal(row):
@@ -167,6 +204,10 @@ def build_review_queue(df):
     Cari baris yang butuh keputusan manual:
       - SBU kosong        -> perlu pilih dari daftar SBU valid (bukan random)
       - Create Ticket date/time kosong -> perlu isi tanggal & jam yang benar
+      - Sub Kategori Awal/Akhir tidak dikenal -> nilainya tidak cocok
+        dengan opsi dropdown manapun di form (kalau dipaksa kirim, form
+        akan menolak dengan HTTP 400), jadi perlu dipetakan manual ke
+        salah satu opsi yang valid.
     Field lain yang boleh kosong (SUB BIDANG AWAL/AKHIR, Keterangan Tambahan)
     tidak masuk sini karena memang tidak wajib.
     """
@@ -177,6 +218,19 @@ def build_review_queue(df):
             row_issues.append("SBU kosong")
         if resolve_create_datetime(row) is None:
             row_issues.append("Create Ticket date/time kosong")
+
+        _, awal_ok = resolve_sub_kategori_awal(row)
+        if not awal_ok:
+            row_issues.append(
+                f"Sub Kategori Awal tidak dikenal ('{clean(row.get('Sub Kategori Awal', ''))}')"
+            )
+
+        _, akhir_ok = map_category(row.get("Sub Kategori Akhir", ""))
+        if not akhir_ok:
+            row_issues.append(
+                f"Sub Kategori Akhir tidak dikenal ('{clean(row.get('Sub Kategori Akhir', ''))}')"
+            )
+
         if row_issues:
             issues.append(
                 {
@@ -192,7 +246,8 @@ def build_review_queue(df):
 # BUILD PAYLOAD
 # =====================================================
 
-def build_payload(row, manual_sbu=None, manual_datetime=None):
+def build_payload(row, manual_sbu=None, manual_datetime=None,
+                   manual_kategori_awal=None, manual_kategori_akhir=None):
     payload = {}
 
     # ---------------------------------
@@ -229,8 +284,17 @@ def build_payload(row, manual_sbu=None, manual_datetime=None):
     payload[ENTRY["jenis_ticket"]] = clean(row["Jenis Ticket"])
     payload[ENTRY["jenis_ticket_sentinel"]] = ""
 
-    payload[ENTRY["sub_kategori_awal"]] = resolve_sub_kategori_awal(row)
-    payload[ENTRY["sub_kategori_akhir"]] = map_category(row.get("Sub Kategori Akhir", ""))
+    if manual_kategori_awal:
+        kategori_awal_val = manual_kategori_awal
+    else:
+        kategori_awal_val, _ = resolve_sub_kategori_awal(row)
+    payload[ENTRY["sub_kategori_awal"]] = kategori_awal_val
+
+    if manual_kategori_akhir:
+        kategori_akhir_val = manual_kategori_akhir
+    else:
+        kategori_akhir_val, _ = map_category(row.get("Sub Kategori Akhir", ""))
+    payload[ENTRY["sub_kategori_akhir"]] = kategori_akhir_val
 
     sbu_value = manual_sbu if manual_sbu else clean(row.get("SBU", ""))
     payload[ENTRY["sbu"]] = sbu_value
@@ -332,13 +396,19 @@ if file:
 
     manual_sbu_map = {}
     manual_datetime_map = {}
+    manual_kategori_awal_map = {}
+    manual_kategori_akhir_map = {}
 
     known_sbu = SBU_OPTIONS
+    known_kategori = sorted(set(CATEGORY_VALID_OPTIONS))
+    LAINNYA = "-- Lainnya (ketik label persis dari form) --"
 
     if issues:
         st.warning(
             f"Ada {len(issues)} baris dengan data yang wajib diisi manual "
-            f"sebelum import (SBU dan/atau tanggal tiket tidak boleh dikarang):"
+            f"sebelum import (SBU, tanggal tiket, dan/atau kategori yang tidak "
+            f"dikenal tidak boleh dikarang / dikirim asal, karena Google Form "
+            f"akan menolaknya - HTTP 400):"
         )
 
         for item in issues:
@@ -372,9 +442,45 @@ if file:
                     f"{chosen_date} {chosen_time}"
                 )
 
+            if any(i.startswith("Sub Kategori Awal tidak dikenal") for i in item["issues"]):
+                chosen = st.selectbox(
+                    f"Pilih Sub Kategori Awal yang benar (baris {idx + 1})",
+                    options=[""] + known_kategori + [LAINNYA],
+                    key=f"kat_awal_{idx}",
+                )
+                if chosen == LAINNYA:
+                    chosen = st.text_input(
+                        f"Ketik label persis dari dropdown form (baris {idx + 1}, Sub Kategori Awal)",
+                        key=f"kat_awal_manual_{idx}",
+                    )
+                if chosen:
+                    manual_kategori_awal_map[idx] = chosen
+
+            if any(i.startswith("Sub Kategori Akhir tidak dikenal") for i in item["issues"]):
+                chosen = st.selectbox(
+                    f"Pilih Sub Kategori Akhir yang benar (baris {idx + 1})",
+                    options=[""] + known_kategori + [LAINNYA],
+                    key=f"kat_akhir_{idx}",
+                )
+                if chosen == LAINNYA:
+                    chosen = st.text_input(
+                        f"Ketik label persis dari dropdown form (baris {idx + 1}, Sub Kategori Akhir)",
+                        key=f"kat_akhir_manual_{idx}",
+                    )
+                if chosen:
+                    manual_kategori_akhir_map[idx] = chosen
+
     all_resolved = all(
         (idx in manual_sbu_map or "SBU kosong" not in item["issues"])
         and (idx in manual_datetime_map or "Create Ticket date/time kosong" not in item["issues"])
+        and (
+            idx in manual_kategori_awal_map
+            or not any(i.startswith("Sub Kategori Awal tidak dikenal") for i in item["issues"])
+        )
+        and (
+            idx in manual_kategori_akhir_map
+            or not any(i.startswith("Sub Kategori Akhir tidak dikenal") for i in item["issues"])
+        )
         for item in issues
         for idx in [item["idx"]]
     )
