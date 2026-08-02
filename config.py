@@ -48,6 +48,12 @@ CATEGORY_MAP = {
     "LINK LOSS": "Gangguan Link Loss",
     "ONT PROBLEM": "Gangguan ONT Problem",
     "INTERNET SLOW": "Gangguan Internet Slow",
+    # Ditulis dengan istilah yang sama sekali beda dari label dropdown
+    # form (bukan cuma beda kapital/tanda hubung), jadi tidak bisa
+    # tertangkap oleh pencocokan otomatis -- perlu alias eksplisit.
+    # Dikonfirmasi dari screenshot dropdown form: "Gangguan Tidak dapat
+    # akses web/situs tertentu."
+    "TIDAK BISA AKSES WEB": "Gangguan Tidak dapat akses web/situs tertentu.",
 }
 
 # Default kategori kalau kolom "Sub Kategori Awal" kosong (aturan dari Anda)
@@ -152,3 +158,18 @@ SBU_OPTIONS = [
     "SUMATERA BAGIAN TENGAH",
     "SUMATERA BAGIAN UTARA",
 ]
+
+# =====================================================
+# ALIAS PENULISAN SBU
+# =====================================================
+# Beberapa file Excel menulis SBU wilayah Bali dengan nama panjang
+# "BALI & NUSA TENGGARA", padahal label PERSIS di dropdown form adalah
+# "BALI & NUSRA" (dikonfirmasi dari screenshot dropdown SBU form).
+# Sebelumnya field SBU sama sekali tidak divalidasi terhadap
+# SBU_OPTIONS di app.py, jadi nilai yang salah ini lolos tanpa ditahan
+# untuk direview lalu ditolak Google Form (HTTP 400) saat submit.
+# Tambahkan alias baru di sini kalau ditemukan penulisan lain yang serupa.
+
+SBU_ALIAS = {
+    "BALI & NUSA TENGGARA": "BALI & NUSRA",
+}
