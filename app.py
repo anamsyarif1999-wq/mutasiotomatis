@@ -19,6 +19,7 @@ from config import (
     SUB_BIDANG_VALID_OPTIONS,
     SUB_BIDANG_ALIAS,
     SBU_OPTIONS,
+    SBU_ALIAS,
 )
 
 # =====================================================
@@ -169,6 +170,26 @@ def resolve_sub_bidang(raw_value):
     return "", True
 
 
+def resolve_sbu(raw_value):
+    """
+    Kembalikan (nilai_untuk_dikirim, dikenali_bool).
+    Nilai raw dinormalisasi dulu lewat SBU_ALIAS (mis. "BALI & NUSA
+    TENGGARA" -> "BALI & NUSRA", penulisan yang sering dipakai di Excel
+    tapi beda dari label persis di dropdown form) sebelum dicocokkan ke
+    SBU_OPTIONS. Kalau tetap tidak cocok, dikenali_bool=False -- SBU
+    adalah field dropdown juga di form, jadi kalau dikirim mentah-mentah
+    dan tidak persis sama dengan salah satu opsi, form akan menolak
+    dengan HTTP 400.
+    """
+    raw = clean(raw_value)
+    if raw == "":
+        return "", False
+    normalized = SBU_ALIAS.get(raw.upper(), raw)
+    if normalized in SBU_OPTIONS:
+        return normalized, True
+    return "", False
+
+
 def resolve_create_datetime(row):
     """
     Gabungkan kolom Create Ticket date + Create Ticket Time jadi datetime.
@@ -202,7 +223,10 @@ def resolve_create_datetime(row):
 def build_review_queue(df):
     """
     Cari baris yang butuh keputusan manual:
-      - SBU kosong        -> perlu pilih dari daftar SBU valid (bukan random)
+      - SBU kosong ATAU tidak cocok dropdown -> perlu pilih dari daftar
+        SBU valid (bukan random, dan bukan dikirim mentah-mentah apa
+        adanya dari Excel -- SBU adalah field dropdown juga di form,
+        jadi nilai yang tidak cocok persis akan ditolak HTTP 400).
       - Create Ticket date/time kosong -> perlu isi tanggal & jam yang benar
       - Sub Kategori Awal/Akhir tidak dikenal -> nilainya tidak cocok
         dengan opsi dropdown manapun di form (kalau dipaksa kirim, form
@@ -214,8 +238,13 @@ def build_review_queue(df):
     issues = []
     for idx, row in df.iterrows():
         row_issues = []
-        if clean(row.get("SBU", "")) == "":
+        sbu_raw = clean(row.get("SBU", ""))
+        if sbu_raw == "":
             row_issues.append("SBU kosong")
+        else:
+            _, sbu_ok = resolve_sbu(sbu_raw)
+            if not sbu_ok:
+                row_issues.append(f"SBU tidak dikenal ('{sbu_raw}')")
         if resolve_create_datetime(row) is None:
             row_issues.append("Create Ticket date/time kosong")
 
@@ -296,7 +325,10 @@ def build_payload(row, manual_sbu=None, manual_datetime=None,
         kategori_akhir_val, _ = map_category(row.get("Sub Kategori Akhir", ""))
     payload[ENTRY["sub_kategori_akhir"]] = kategori_akhir_val
 
-    sbu_value = manual_sbu if manual_sbu else clean(row.get("SBU", ""))
+    if manual_sbu:
+        sbu_value = manual_sbu
+    else:
+        sbu_value, _ = resolve_sbu(row.get("SBU", ""))
     payload[ENTRY["sbu"]] = sbu_value
 
     skipped_fields = []
@@ -448,7 +480,10 @@ if file:
 
             c1, c2, c3 = st.columns(3)
 
-            if "SBU kosong" in item["issues"]:
+            sbu_bermasalah = "SBU kosong" in item["issues"] or any(
+                i.startswith("SBU tidak dikenal") for i in item["issues"]
+            )
+            if sbu_bermasalah:
                 with c1:
                     chosen_sbu = st.selectbox(
                         f"Pilih SBU (baris {idx + 1})",
@@ -511,7 +546,13 @@ if file:
                     manual_kategori_akhir_map[idx] = chosen
 
     all_resolved = all(
-        (idx in manual_sbu_map or "SBU kosong" not in item["issues"])
+        (
+            idx in manual_sbu_map
+            or (
+                "SBU kosong" not in item["issues"]
+                and not any(i.startswith("SBU tidak dikenal") for i in item["issues"])
+            )
+        )
         and (idx in manual_datetime_map or "Create Ticket date/time kosong" not in item["issues"])
         and (
             idx in manual_kategori_awal_map
