@@ -428,14 +428,17 @@ if file:
                         manual_sbu_map[idx] = chosen_sbu
 
             if "Create Ticket date/time kosong" in item["issues"]:
+                now_jakarta = datetime.now(ZoneInfo("Asia/Jakarta"))
                 with c2:
                     chosen_date = st.date_input(
                         f"Create Ticket date (baris {idx + 1})",
+                        value=now_jakarta.date(),
                         key=f"date_{idx}",
                     )
                 with c3:
                     chosen_time = st.time_input(
                         f"Create Ticket time (baris {idx + 1})",
+                        value=now_jakarta.time(),
                         key=f"time_{idx}",
                     )
                 manual_datetime_map[idx] = pd.to_datetime(
