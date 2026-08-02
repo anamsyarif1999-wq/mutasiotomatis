@@ -55,7 +55,7 @@ def get_pickup_time():
 
     # Data pertama
     if last_submit_time is None:
-        pickup = now - timedelta(seconds=random.randint(20, 40))
+        pickup = now - timedelta(seconds=random.randint(9, 15))
     # Data berikutnya
     else:
         pickup = last_submit_time + timedelta(seconds=random.randint(1, 10))
