@@ -5,6 +5,7 @@ import requests
 import random
 import time
 import json
+import re
 
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -111,6 +112,11 @@ _CATEGORY_VALID_LOOKUP = {
 }
 
 
+_CATEGORY_MAP_LOOKUP = {
+    _normalize_for_match(k): v for k, v in CATEGORY_MAP.items()
+}
+
+
 def map_category(raw_value):
     """
     Terjemahkan nilai mentah Excel ke label dropdown Google Form.
@@ -133,10 +139,14 @@ def map_category(raw_value):
     if raw_value == "":
         return "", True
 
-    # Buang prefix "GANGGUAN - " kalau ada (format lama, tetap didukung)
-    normalized = raw_value.replace("GANGGUAN - ", "").strip()
-    if normalized in CATEGORY_MAP:
-        return CATEGORY_MAP[normalized], True
+    # Buang prefix "GANGGUAN"/"KELUHAN" beserta tanda "-" di depannya, dan
+    # toleran terhadap spasi yang hilang/berlebih (contoh nyata di Excel:
+    # "GANGGUAN -TIDAK BISA AKSES WEB" tanpa spasi setelah "-", yang dulu
+    # gagal karena pencocokan persis "GANGGUAN - ").
+    core = re.sub(r"^\s*(GANGGUAN|KELUHAN)\s*-\s*", "", raw_value, flags=re.I)
+    core_key = _normalize_for_match(core)
+    if core_key in _CATEGORY_MAP_LOOKUP:
+        return _CATEGORY_MAP_LOOKUP[core_key], True
 
     match = _CATEGORY_VALID_LOOKUP.get(_normalize_for_match(raw_value))
     if match:
@@ -588,6 +598,8 @@ if file:
                 row,
                 manual_sbu=manual_sbu_map.get(idx),
                 manual_datetime=manual_datetime_map.get(idx),
+                manual_kategori_awal=manual_kategori_awal_map.get(idx),
+                manual_kategori_akhir=manual_kategori_akhir_map.get(idx),
             )
 
             ok, err = submit_form(session, payload)
