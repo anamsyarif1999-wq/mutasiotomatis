@@ -45,9 +45,23 @@ ENTRY = {
 
 CATEGORY_MAP = {
     "INTERNET DOWN/NO INTERNET": "Gangguan Internet Down",
+    "INTERMITTEN":"Gangguan Intermitten",
+    "INTERNET SLOW":"Gangguan Internet Slow",
     "LINK LOSS": "Gangguan Link Loss",
     "ONT PROBLEM": "Gangguan ONT Problem",
     "INTERNET SLOW": "Gangguan Internet Slow",
+    "REFUND":"Keluhan Refund",
+    "GANTI PASSWORD":"Keluhan Ganti Password",
+    "REBOOT BY ACS":"Keluhan Reboot by ACS",
+    "LAIN-LAIN":"Keluhan lain lain",
+    "ONT OFFLINE": "Keluhan lain lain",
+    "UPGRADE":"Keluhan Upgrade",
+    "DOWNGRADE":"Keluhan Downgrade",
+    "PERMOHONAN UPGRADE":"Keluhan Permohonan Upgrade",
+    "PERMOHONAN DOWNGRADE":"Keluhan Permohonan Downgrade",
+    "ISOLIR":"Keluhan Isolir",
+    "BILLING":"Keluhan Billing"
+
     # Ditulis dengan istilah yang sama sekali beda dari label dropdown
     # form (bukan cuma beda kapital/tanda hubung), jadi tidak bisa
     # tertangkap oleh pencocokan otomatis -- perlu alias eksplisit.
