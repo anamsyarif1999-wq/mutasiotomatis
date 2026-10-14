@@ -54,6 +54,13 @@ CATEGORY_MAP = {
     # Dikonfirmasi dari screenshot dropdown form: "Gangguan Tidak dapat
     # akses web/situs tertentu."
     "TIDAK BISA AKSES WEB": "Gangguan Tidak dapat akses web/situs tertentu.",
+    "GANTI NAMA SSID": "Keluhan Ganti SSID",
+    "DEAKTIVASI": "Keluhan Deaktifasi",
+    # Belum ada opsi yang jelas di form untuk: "REBOOT BY ACS",
+    # "BATAL DEAKTIVASI", "ICONPLAY", "CUBMU" -> sengaja TIDAK ditebak,
+    # akan muncul di "Perlu Ditinjau" supaya dipilih manual.
+    # Kalau sudah diputuskan, tambahkan di sini, contoh:
+    # "REBOOT BY ACS": "Keluhan lain lain",
 }
 
 # Default kategori kalau kolom "Sub Kategori Awal" kosong (aturan dari Anda)
