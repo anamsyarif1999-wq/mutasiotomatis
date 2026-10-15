@@ -60,7 +60,7 @@ CATEGORY_MAP = {
     "PERMOHONAN UPGRADE":"Keluhan Permohonan Upgrade",
     "PERMOHONAN DOWNGRADE":"Keluhan Permohonan Downgrade",
     "ISOLIR":"Keluhan Isolir",
-    "BILLING":"Keluhan Billing"
+    "BILLING":"Keluhan Billing",
 
     # Ditulis dengan istilah yang sama sekali beda dari label dropdown
     # form (bukan cuma beda kapital/tanda hubung), jadi tidak bisa
